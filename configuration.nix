@@ -10,25 +10,39 @@
       ./hardware-configuration.nix
     ];
 
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
+
+  fonts.packages = with pkgs; [
+    nerd-fonts.hack
+  ];
+  services.blueman.enable = true;
+  services.flatpak.enable = true;
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # networking.hostName = "pancakes"; # Define your hostname.
+  networking.hostName = "pancakes"; # Define your hostname.
+  networking.firewall.enable = false;
 
+  networking = {
+    nameservers = [ "1.1.1.1" "1.0.0.1" ];
+    networkmanager.dns = "none";
+  };
   # Configure network connections interactively with nmcli or nmtui.
   networking.networkmanager.enable = true;
 
-nix.settings.experimental-features = [ "nix-command" "flakes"];
   # Set your time zone.
- time.timeZone = "America/Los_Angeles";
+  # time.timeZone = "America/Los_Angeles";
+  time.timeZone="America/New_York";
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Select internationalisation properties.
-   i18n.defaultLocale = "en_US.UTF-8";
+  # i18n.defaultLocale = "en_US.UTF-8";
   # console = {
   #   font = "Lat2-Terminus16";
   #   keyMap = "us";
@@ -39,11 +53,19 @@ nix.settings.experimental-features = [ "nix-command" "flakes"];
   # services.xserver.enable = true;
 
 
-  
-
   # Configure keymap in X11
-  # services.xserver.xkb.layout = "us";
-  # services.xserver.xkb.options = "eurosign:e,caps:escape";
+  # services.xserver.xkb.options = "caps:escape";
+
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    wlr.settings = {
+      screencast = {
+        chooser_type = "dmenu";
+        chooser_cmd = "${pkgs.wofi}/bin/wofi --show=dmenu";
+      };
+    };
+  };
 
   # Enable CUPS to print documents.
   # services.printing.enable = true;
@@ -51,33 +73,132 @@ nix.settings.experimental-features = [ "nix-command" "flakes"];
   # Enable sound.
   # services.pulseaudio.enable = true;
   # OR
-  # services.pipewire = {
-  #   enable = true;
-  #   pulse.enable = true;
-  # };
+  security.rtkit.enable = true;
+  services.pipewire = {
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    enable = true;
+    pulse.enable = true;
+  };
 
   # Enable touchpad support (enabled default in most desktopManager).
-  # services.libinput.enable = true;
+  services.libinput.enable = true;
 
+  services.pipewire.wireplumber.extraConfig.no-ucm = {
+    "monitor.alsa.properties" = {
+      "alsa.use-ucm" = false;
+    };
+  };
+  # services.pipewire.wireplumber.extraConfig."bluetooth" = {
+  #   "monitor.bluez.properties" = {
+  #     "bluez5.codecs" = [ "aptx" ];  # or "aptx_hd" if your headphones support it
+  #   };
+  # };
+  nixpkgs.config.allowUnfree = true;
+  programs.zsh.enable = true;
+  programs.gamemode.enable = true;
+  users.defaultUserShell = pkgs.zsh;
+
+  users.groups.plugdev = {};
+  users.groups.dialout = {};
   # Define a user account. Don't forget to set a password with ‘passwd’.
-   users.users.badcop = {
-     isNormalUser = true;
-     extraGroups = [ "wheel" "networkmanager" ]; # Enable ‘sudo’ for the user.
-     packages = with pkgs; [
-       tree
-     ];
-   };
+  users.users.badcop = {
+    shell = pkgs.zsh;
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" "plugdev" "dialout" ]; # Enable ‘sudo’ for the user.
+    packages = with pkgs; [
+      tree
+    ];
+  };
 
- environment.systemPackages = with pkgs; [ vim git ];
-
- programs.firefox.enable = true;
+  programs.firefox.enable = true;
+  programs.steam.enable = true;
 
   # List packages installed in system profile.
   # You can use https://search.nixos.org/ to find more packages (and options).
-  # environment.systemPackages = with pkgs; [
-  #   vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
-  #   wget
-  # ];
+  environment.systemPackages = with pkgs; [
+    (wrapNeovimUnstable neovim-unwrapped {
+      wrapRc = false;
+      wrapperArgs = [
+        "--prefix" "PATH" ":" "${lib.makeBinPath [ gcc tree-sitter ]}"
+      ];
+    })
+    wget
+    wl-clipboard
+    ripgrep
+    screen
+    fd
+    mako
+    moreutils
+    nautilus
+    tmux
+    discord-canary
+    spotify
+    google-chrome
+    ghostty
+    bluetuith
+    ucspi-tcp
+    pavucontrol
+    pwvucontrol
+    crosspipe
+    flitter
+    wofi
+    inotify-tools
+    i3status
+    direnv
+    zoom-us
+    grim
+    slurp
+    wf-recorder
+    unzip
+    zulip
+    gcc
+    gnumake
+    ffmpeg
+    fuzzel
+    nodejs
+    bc
+    xxd
+    file
+    websocat
+    prismlauncher
+    jq
+    godot
+    blender
+    wayland-scanner
+    s3cmd
+    swayr
+    wdisplays
+    dig
+    gum
+    figlet
+    terminaltexteffects
+    viu
+    chafa
+    freecad
+  ];
+  services.gnome.gnome-keyring.enable = true;
+  # programs.noisetorch.enable = true;
+
+  programs.git = {
+    enable = true;
+    lfs.enable = true;
+  };
+
+  programs.sway = {
+    enable = true;
+    wrapperFeatures.gtk = true;
+  };
+
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true; # Required for Steam and 32-bit games/apps
+  };
+  hardware.amdgpu.initrd.enable = true;
+  services.xserver.videoDrivers = [ "amdgpu" ];
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.initrd.kernelModules = [ "amdgpu" ];
+  # services.udev.extraRules = builtins.readFile ./69-probe-rs.rules;
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
@@ -123,4 +244,3 @@ nix.settings.experimental-features = [ "nix-command" "flakes"];
   system.stateVersion = "25.11"; # Did you read the comment?
 
 }
-
